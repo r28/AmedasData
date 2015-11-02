@@ -6,114 +6,96 @@
 
 var UI = require('ui');
 var Vector2 = require('vector2');
-var ajax = require('ajax');
 
-var main = new UI.Card({
-  title: 'AMeDAS Data',
-  //icon: 'images/menu_icon.png',
-  //subtitle: 'Hello World!',
-  body: 'Getting Nearest & Latest AMeDAS Data!\nPress any button.'
+var window = new UI.Window({ fullscreen: true, scrollable: true });
+
+var pointText = new UI.Text({
+  position: new Vector2(0, 0),
+  size: new Vector2(144, 30),
+  textAlign: 'center',
+  font: 'gothic-24-bold',
+  text: 'Loading...',
+  color: 'black',
+  backgroundColor: 'white'
 });
 
-main.show();
-getCurrentAmedasLocation();
-
-main.on('click', 'up', function(e) {
-  var menu = new UI.Menu({
-    sections: [{
-      items: [{
-        title: 'Get Your Latest Position',
-        icon: 'images/menu_icon.png',
-        subtitle: 'Can do Menus'
-      }, {
-        title: 'Second Item',
-        subtitle: 'Subtitle Text'
-      }]
-    }]
-  });
-  menu.on('select', function(e) {
-    console.log('Selected item #' + e.itemIndex + ' of section #' + e.sectionIndex);
-    console.log('The item is titled "' + e.item.title + '"');
-  });
-  menu.show();
-  getCurrentAmedasLocation();
+var dtText = new UI.Text({
+  position: new Vector2(0, 35),
+  size: new Vector2(144, 20),
+  textAlign: 'center',
+  font: 'gothic-18',
+  text: '',
 });
 
-main.on('click', 'select', function(e) {
-  var wind = new UI.Window({
-    fullscreen: true,
-  });
-  var textfield = new UI.Text({
-    position: new Vector2(0, 65),
-    size: new Vector2(144, 30),
-    font: 'gothic-24-bold',
-    text: 'Text Anywhere!',
-    textAlign: 'center'
-  });
-  wind.add(textfield);
-  wind.show();
+var tempText = new UI.Text({
+  position: new Vector2(0, 60),
+  size: new Vector2(144, 20),
+  textAlign: 'left',
+  font: 'gothic-18',
+  text: ''
 });
 
-main.on('click', 'down', function(e) {
-  var card = new UI.Card();
-  card.title('A Card');
-  card.subtitle('Is a Window');
-  card.body('The simplest window type in Pebble.js.');
-  card.show();
+var rainText = new UI.Text({
+  position: new Vector2(0, 85),
+  size: new Vector2(144, 20),
+  textAlign: 'left',
+  font: 'gothic-18',
+  text: ''
 });
 
-function getCurrentAmedasLocation() {
-  navigator.geolocation.getCurrentPosition(function(position) {
-    console.log(position.coords.latitude, position.coords.longitude);
-    var baseUrl = 'http://redmagic.cc/amedas/point/closest';
-    var apiUrl = baseUrl + '?lat=' + position.coords.latitude + '&lng=' + position.coords.longitude;
-    console.log(apiUrl);
-    ajax(
-      {
-        url: apiUrl,
-        method: 'get',
-        type: 'json'
-      },
-      function(data, status, request) {
-        var pointName = data.name;
-        var prefName = data.pref.fuken_pref;
-        console.log(pointName);
-        console.log(prefName);
-        var latestDataObj = getLatestAmedasData(data.pref_code, data.code);
-        console.log(latestDataObj.datetime);
-        console.log(latestDataObj.temperature);
-        console.log(latestDataObj.precipitation);
-        console.log(latestDataObj.wind_dir);
-        console.log(latestDataObj.wind_speed);
-        console.log(latestDataObj.sunshine);
-      },
-      function(error, status, request) {
-        console.log('Faild fetching AMeDAS Point data: ' + error);
-      }
-    );
-  });
-}
+var windDirText = new UI.Text({
+  position: new Vector2(0, 110),
+  size: new Vector2(144, 20),
+  textAlign: 'left',
+  font: 'gothic-18',
+  text: ''
+});
 
-function getLatestAmedasData(pref_code, ame_code) {
-  var baseUrl = 'http://redmagic.cc/amedas/data/latest';
-  var apiUrl = baseUrl + '?pref=' + pref_code + '&code=' + ame_code;
+var windSpeedText = new UI.Text({
+  position: new Vector2(0, 135),
+  size: new Vector2(144, 20),
+  textAlign: 'left',
+  font: 'gothic-18',
+  text: ''
+});
+
+
+var sunText = new UI.Text({
+  position: new Vector2(0, 160),
+  size: new Vector2(144, 20),
+  textAlign: 'left',
+  font: 'gothic-18',
+  text: ''
+});
+
+window.add(pointText);
+window.add(dtText);
+window.add(tempText);
+window.add(rainText);
+window.add(windDirText);
+window.add(windSpeedText);
+window.add(sunText);
+window.show();
+
+navigator.geolocation.getCurrentPosition(function(position) {
+  var lat = position.coords.latitude;
+  var lng = position.coords.longitude;
+  var baseUrl = 'http://redmagic.cc/amedas/data/point-data';
+  var apiUrl = baseUrl + '?lat=' + lat + '&lng=' + lng;
+
+  var req = new XMLHttpRequest();
+  req.onload = function () {
+    var response = JSON.parse(req.responseText);
+    console.log('[amedas] Name:' + response.point.name);
+    pointText.text(response.point.name);
+    dtText.text(response.datetime);
+    tempText.text('気温:' + response.temperature + ' C');
+    rainText.text('降水:' + response.precipitation + ' mm');
+    windDirText.text('風向:' + response.wind_direction + 'の風');
+    windSpeedText.text('風速:' + response.wind_speed + ' m/s');
+    sunText.text('日照: ' + response.sunshine + ' hour');
+  };
+  req.open('GET', apiUrl, true);
   console.log(apiUrl);
-  ajax(
-    {
-      url: apiUrl,
-      method: 'get',
-      type: 'json'
-    },
-    function (data, status, request) {
-      var dataObj = new Object();
-      dataObj = {datetime:data.datetime, temperature:data.temperature, precipitation:data.precipitation, 
-                     wind_dir:data.wind_direction, wind_speed:data.wind_speed, sunshine:data.sunshine};
-      console.log(dataObj.datetime);
-      return dataObj;
-    },
-    function (error, status, request) {
-      console.log('Faild fetching AMeDAS Data: ' + error);
-      return false;
-    }
-  );
-}
+  req.send();
+});
