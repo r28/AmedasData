@@ -117,6 +117,23 @@ function getCurrentAmedas(objArr) {
     var apiUrl = baseUrl + '?lat=' + lat + '&lng=' + lng;
 
     var req = new XMLHttpRequest();
+    req.ontimeout = function () {
+      console.log('[ERROR] HttpRequest Timeout');
+      if (Settings.data('point')) {
+        var datasSaved = {
+          point: Settings.data('point'),
+          dt: Settings.data('dt'),
+          temp: Settings.data('temp'),
+          rain: Settings.data('rain'),
+          windDir: Settings.data('windDir'),
+          windSpeed: Settings.data('windSpeed'),
+          sun: Settings.data('sun'),
+        };
+        displayDatas(objArr, datasSaved, true);
+      } else {
+        objArr.point.text('Error!');
+      }
+    };
     req.onload = function (e) {
       if (req.readyState == 4 && req.status == 200) {
         var response = JSON.parse(req.responseText);
@@ -150,11 +167,12 @@ function getCurrentAmedas(objArr) {
           displayDatas(objArr, datasSaved, true);
         } else {
           objArr.point.text('Error!');
-          objArr.error.text('×');
         }
+        objArr.error.text('×');
       }
     };
     req.open('GET', apiUrl, true);
+    req.timeout = 5000;
     console.log(apiUrl);
     req.send();
   });
@@ -162,17 +180,18 @@ function getCurrentAmedas(objArr) {
 
 function displayDatas(objArr, datas, isError) {
   objArr.point.text(datas.point);
+  objArr.point.color('red');
   if (isError === true) {
     objArr.error.text('×');
   } else {
     objArr.error.text('');
   }
   objArr.dt.text(datas.dt);
-  objArr.temp.text('気温:' + datas.temp + ' C');
-  objArr.rain.text('降水:' + datas.rain + ' mm');
-  objArr.windDir.text('風向:' + datas.windDir + 'の風');
-  objArr.windSpeed.text('風速:' + datas.windSpeed + ' m/s');
-  objArr.sun.text('日照: ' + datas.sun + ' hour');
+  objArr.temp.text('気温 : ' + datas.temp + ' C');
+  objArr.rain.text('降水 : ' + datas.rain + ' mm');
+  objArr.windDir.text('風向 : ' + datas.windDir + 'の風');
+  objArr.windSpeed.text('風速 : ' + datas.windSpeed + ' m/s');
+  objArr.sun.text('日照 : ' + datas.sun + ' hour');
 }
 
 function saveDatas(datas) {
