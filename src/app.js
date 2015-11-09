@@ -7,12 +7,13 @@
 var UI = require('ui');
 var Vector2 = require('vector2');
 var Settings = require('settings');
+var ajax = require('ajax');
 
 var window = new UI.Window({ fullscreen: true, scrollable: true });
 
 var errorText = new UI.Text({
   position: new Vector2(0, 0),
-  size: new Vector2(30, 30),
+  size: new Vector2(30, 28),
   textAlign: 'left',
   font: 'gothic-24-bold',
   text: '',
@@ -39,7 +40,7 @@ var dtText = new UI.Text({
 });
 
 var tempText = new UI.Text({
-  position: new Vector2(0, 55),
+  position: new Vector2(0, 50),
   size: new Vector2(144, 20),
   textAlign: 'left',
   font: 'gothic-18',
@@ -47,7 +48,7 @@ var tempText = new UI.Text({
 });
 
 var rainText = new UI.Text({
-  position: new Vector2(0, 75),
+  position: new Vector2(0, 70),
   size: new Vector2(144, 20),
   textAlign: 'left',
   font: 'gothic-18',
@@ -55,7 +56,7 @@ var rainText = new UI.Text({
 });
 
 var windDirText = new UI.Text({
-  position: new Vector2(0, 95),
+  position: new Vector2(0, 90),
   size: new Vector2(144, 20),
   textAlign: 'left',
   font: 'gothic-18',
@@ -63,7 +64,7 @@ var windDirText = new UI.Text({
 });
 
 var windSpeedText = new UI.Text({
-  position: new Vector2(0, 115),
+  position: new Vector2(0, 110),
   size: new Vector2(144, 20),
   textAlign: 'left',
   font: 'gothic-18',
@@ -72,7 +73,7 @@ var windSpeedText = new UI.Text({
 
 
 var sunText = new UI.Text({
-  position: new Vector2(0, 135),
+  position: new Vector2(0, 130),
   size: new Vector2(144, 20),
   textAlign: 'left',
   font: 'gothic-18',
@@ -115,44 +116,29 @@ function getCurrentAmedas(objArr) {
     var lng = position.coords.longitude;
     var baseUrl = 'http://redmagic.cc/amedas/data/point-data';
     var apiUrl = baseUrl + '?lat=' + lat + '&lng=' + lng;
+    
+    ajax(
+      {
+        url: apiUrl,
+        type: 'json',
+      },
+      function (data) {
+        console.log('[amedas] Name:' + data.point.name);
 
-    var req = new XMLHttpRequest();
-    req.ontimeout = function () {
-      console.log('[ERROR] HttpRequest Timeout');
-      if (Settings.data('point')) {
-        var datasSaved = {
-          point: Settings.data('point'),
-          dt: Settings.data('dt'),
-          temp: Settings.data('temp'),
-          rain: Settings.data('rain'),
-          windDir: Settings.data('windDir'),
-          windSpeed: Settings.data('windSpeed'),
-          sun: Settings.data('sun'),
-        };
-        displayDatas(objArr, datasSaved, true);
-      } else {
-        objArr.point.text('Error!');
-      }
-    };
-    req.onload = function (e) {
-      if (req.readyState == 4 && req.status == 200) {
-        var response = JSON.parse(req.responseText);
-        console.log('[amedas] Name:' + response.point.name);
-      
-        saveDatas(response);
-        
+        saveDatas(data);
+
         var datas = {
-          point: response.point.name,
-          dt: response.datetime,
-          temp: response.temperature,
-          rain: response.precipitation,
-          windDir: response.wind_direction,
-          windSpeed: response.wind_speed,
-          sun: response.sunshine,
+          point: data.point.name,
+          dt: data.datetime,
+          temp: data.temperature,
+          rain: data.precipitation,
+          windDir: data.wind_direction,
+          windSpeed: data.wind_speed,
+          sun: data.sunshine,
         };
         displayDatas(objArr, datas, false);
-        
-      } else {
+      },
+      function (error) {
         console.log('[ERROR] HttpRequest Error');
         if (Settings.data('point')) {
           var datasSaved = {
@@ -164,23 +150,19 @@ function getCurrentAmedas(objArr) {
             windSpeed: Settings.data('windSpeed'),
             sun: Settings.data('sun'),
           };
+          objArr.error.text('×');
           displayDatas(objArr, datasSaved, true);
         } else {
           objArr.point.text('Error!');
         }
-        objArr.error.text('×');
       }
-    };
-    req.open('GET', apiUrl, true);
-    req.timeout = 5000;
-    console.log(apiUrl);
-    req.send();
+    );
   });
 }
 
 function displayDatas(objArr, datas, isError) {
   objArr.point.text(datas.point);
-  objArr.point.color('red');
+  objArr.point.color('black');
   if (isError === true) {
     objArr.error.text('×');
   } else {
@@ -191,7 +173,7 @@ function displayDatas(objArr, datas, isError) {
   objArr.rain.text('降水 : ' + datas.rain + ' mm');
   objArr.windDir.text('風向 : ' + datas.windDir + 'の風');
   objArr.windSpeed.text('風速 : ' + datas.windSpeed + ' m/s');
-  objArr.sun.text('日照 : ' + datas.sun + ' hour');
+  objArr.sun.text('日照 : ' + datas.sun + ' min');
 }
 
 function saveDatas(datas) {
