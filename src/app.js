@@ -8,6 +8,8 @@ var UI = require('ui');
 var Vector2 = require('vector2');
 var Settings = require('settings');
 var ajax = require('ajax');
+var initialized = false;
+var options = {};
 
 var window = new UI.Window({ fullscreen: true, scrollable: true });
 
@@ -17,7 +19,7 @@ var errorText = new UI.Text({
   textAlign: 'left',
   font: 'gothic-24-bold',
   text: '',
-  color: 'black',
+  color: 'red',
   backgroundColor: 'white'
 });
 
@@ -102,9 +104,9 @@ function windowAdd(windowObj, objArr) {
 
 getCurrentAmedas(uiTextArr);
 
-/* SELECT Click => Reload */
-window.on('click', 'select', function(e) {
-  console.log('[CLICK] Select');
+/* Up Click => Reload */
+window.on('click', 'up', function(e) {
+  console.log('[CLICK] Up');
   windowAdd(window, uiTextArr);
   window.show();
   getCurrentAmedas(uiTextArr);
@@ -186,3 +188,26 @@ function saveDatas(datas) {
   Settings.data('sun', datas.sunshine);
   console.log(Settings.data('rain'));
 }
+
+
+Pebble.addEventListener("ready", function() {
+  console.log("ready called!");
+  initialized = true;
+});
+
+Pebble.addEventListener("showConfiguration", function() {
+  console.log("showing configuration");
+  Pebble.openURL('http://redmagic.cc/amedas/point/list?'+encodeURIComponent(JSON.stringify(options)));
+});
+
+Pebble.addEventListener("webviewclosed", function(e) {
+  console.log("configuration closed");
+  // webview closed
+  //Using primitive JSON validity and non-empty check
+  if (e.response.charAt(0) == "{" && e.response.slice(-1) == "}" && e.response.length > 5) {
+    options = JSON.parse(decodeURIComponent(e.response));
+    console.log("Options = " + JSON.stringify(options));
+  } else {
+    console.log("Cancelled");
+  }
+});
